@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "udmx-strips"
+version = "1.0.0"
+description = "Control 6 RGBW LED strips on a DMX decoder through a uDMX USB interface - library and command line tool"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pyusb>=1.2",
+    # Windows has no system libusb; Linux/macOS use the system one.
+    "libusb-package; platform_system == 'Windows'",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+dmx = "udmx_strips.cli:main"
+
+[tool.setuptools]
+packages = ["udmx_strips"]

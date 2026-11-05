@@ -1,0 +1,7 @@
+# uDMX USB interface - allow non-root access on Linux.
+# Install:  sudo cp 99-udmx.rules /etc/udev/rules.d/
+#           sudo udevadm control --reload && sudo udevadm trigger
+# Then unplug and replug the uDMX. Logged-in desktop users get access
+# automatically (uaccess); on a headless box add yourself to "plugdev":
+#           sudo usermod -aG plugdev $USER   (log out/in afterwards)
+SUBSYSTEM=="usb", ATTR{idVendor}=="16c0", ATTR{idProduct}=="05dc", MODE="0660", GROUP="plugdev", TAG+="uaccess"
