@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "udmx-strips"
 version = "1.0.0"
-description = "Control 6 RGBW LED strips on a DMX decoder through a uDMX USB interface - library and command line tool"
+description = "Control RGB LED strips on a DMX decoder through a uDMX USB interface - library and command line tool"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
