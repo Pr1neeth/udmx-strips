@@ -14,7 +14,6 @@ examples:
   dmx red                      all strips red
   dmx '#ff8800'                all strips orange (quote the # in a shell)
   dmx 255,100,0                R,G,B decimal
-  dmx 255,100,0,80             R,G,B,W decimal
   dmx warm-white -b 40         warm white at 40%% brightness
   dmx -s 2 blue                strip 2 only (others keep their color)
   dmx -s 1,3,5-6 green         strips 1, 3, 5 and 6
@@ -55,22 +54,20 @@ def parse_strip_spec(spec: str, max_strip: int) -> List[int]:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="dmx",
-        description="Set the color of RGBW strips on a uDMX interface. "
+        description="Set the color of RGB strips on a uDMX interface. "
                     "The color stays on after the command exits.",
         epilog=EXAMPLES,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("colors", nargs="*", metavar="COLOR",
-                   help="name, #hex, or R,G,B[,W]. One color applies to the "
+                   help="name, #hex, or R,G,B. One color applies to the "
                         "selected strips; several colors go to strips 1, 2, 3...")
     p.add_argument("-s", "--strip", metavar="N",
                    help="strips to change, e.g. 2 or 1,3 or 4-6 (default: all)")
     p.add_argument("-b", "--brightness", type=float, default=100.0,
                    metavar="PCT", help="brightness 0-100 (default 100)")
-    p.add_argument("-w", "--white", type=int, metavar="0-255",
-                   help="override the white channel value")
     p.add_argument("--strips", type=int, default=6, metavar="N",
-                   help="number of strips on the decoder (default 6)")
+                   help="number of RGB strips on the decoder (default 6)")
     p.add_argument("--start-channel", type=int, metavar="CH",
                    default=int(os.environ.get("UDMX_START_CHANNEL", "1")),
                    help="decoder DMX address (default 1, or $UDMX_START_CHANNEL)")
@@ -96,8 +93,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         parser.error("a color is required, e.g.  dmx red")
     if not 0.0 <= args.brightness <= 100.0:
         parser.error("brightness must be between 0 and 100")
-    if args.white is not None and not 0 <= args.white <= 255:
-        parser.error("--white must be between 0 and 255")
 
     try:
         selected = (parse_strip_spec(args.strip, args.strips)
@@ -113,8 +108,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         if not args.strip and len(args.colors) > args.strips:
             parser.error(f"{len(args.colors)} colors given but only "
                          f"{args.strips} strips")
-        if args.white is not None:
-            parser.error("--white only works with a single color")
 
     try:
         device = DummyDevice(echo=True) if args.dry_run else UDMX()
@@ -123,13 +116,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                        brightness=args.brightness / 100.0) as strips:
             if len(args.colors) == 1:
                 if len(selected) == args.strips:
-                    sent = strips.set_all(args.colors[0], white=args.white)
+                    sent = strips.set_all(args.colors[0])
                 else:
-                    sent = strips.set_strips(selected, args.colors[0],
-                                             white=args.white)
+                    sent = strips.set_strips(selected, args.colors[0])
                 where = ("all strips" if len(selected) == args.strips
                          else "strip " + ",".join(map(str, selected)))
-                message = "%s: R%d G%d B%d W%d" % ((where,) + tuple(sent))
+                message = "%s: R%d G%d B%d" % ((where,) + tuple(sent))
             else:
                 if args.strip:
                     for strip, color in zip(selected, args.colors):

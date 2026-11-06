@@ -1,4 +1,4 @@
-"""udmx-strips: control RGBW LED strips through a uDMX USB interface."""
+"""udmx-strips: control RGB LED strips through a uDMX USB interface."""
 
 from .colors import ColorError, NAMED_COLORS, parse_color, scale_color
 from .controller import DMXStrips
