@@ -50,6 +50,18 @@ hex (`#f80`, `#ff8800`) or decimal `R,G,B`.
 
 Exit codes: `0` ok, `1` device/hardware error, `2` bad arguments.
 
+## Wrong colors? Set the color order
+
+Decoders differ in which color each channel carries. If `dmx red` shows blue, `dmx blue` shows green and `dmx green` shows red, the decoder is **BRG**:
+
+```bash
+dmx --order brg red                     # one command
+export UDMX_COLOR_ORDER=brg             # Linux/macOS: add to ~/.bashrc to keep it
+setx UDMX_COLOR_ORDER brg               # Windows: then open a new terminal
+```
+
+In Python: `DMXStrips(color_order="BRG")`. Letters are the color on channel 1, 2, 3 in that order (default `RGB`).
+
 ## Python library
 
 ```python
