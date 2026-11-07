@@ -19,6 +19,7 @@ examples:
   dmx -s 1,3,5-6 green         strips 1, 3, 5 and 6
   dmx red green blue           strips 1, 2, 3 get their own colors
   dmx off                      turn everything off
+  dmx --order brg red          decoder channels are blue,red,green
   dmx --list-colors            show named colors
 """
 
@@ -71,6 +72,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--start-channel", type=int, metavar="CH",
                    default=int(os.environ.get("UDMX_START_CHANNEL", "1")),
                    help="decoder DMX address (default 1, or $UDMX_START_CHANNEL)")
+    p.add_argument("--order", metavar="RGB",
+                   default=os.environ.get("UDMX_COLOR_ORDER", "RGB"),
+                   help="decoder channel color order, e.g. BRG "
+                        "(default RGB, or $UDMX_COLOR_ORDER)")
     p.add_argument("--dry-run", action="store_true",
                    help="print the DMX data instead of using the hardware")
     p.add_argument("-q", "--quiet", action="store_true",
@@ -91,6 +96,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     if not args.colors:
         parser.error("a color is required, e.g.  dmx red")
+    if sorted(args.order.strip().upper()) != ["B", "G", "R"]:
+        parser.error("--order must use each of R, G, B once, e.g. BRG")
     if not 0.0 <= args.brightness <= 100.0:
         parser.error("brightness must be between 0 and 100")
 
@@ -113,7 +120,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         device = DummyDevice(echo=True) if args.dry_run else UDMX()
         with DMXStrips(device=device, num_strips=args.strips,
                        start_channel=args.start_channel,
-                       brightness=args.brightness / 100.0) as strips:
+                       brightness=args.brightness / 100.0,
+                       color_order=args.order) as strips:
             if len(args.colors) == 1:
                 if len(selected) == args.strips:
                     sent = strips.set_all(args.colors[0])

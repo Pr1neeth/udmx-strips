@@ -20,10 +20,21 @@ class DMXStrips:
 
     num_strips and start_channel must match your decoder (its DMX address and
     how many outputs it has). brightness (0.0-1.0) scales everything sent.
+
+    color_order says which color each decoder channel carries, in channel
+    order. "RGB" (default) means channel 1=red, 2=green, 3=blue. If red shows
+    up as blue, green as red and blue as green, your decoder is "BRG".
     """
 
     def __init__(self, device=None, num_strips: int = 6,
-                 start_channel: int = 1, brightness: float = 1.0):
+                 start_channel: int = 1, brightness: float = 1.0,
+                 color_order: str = "RGB"):
+        order = color_order.strip().upper()
+        if sorted(order) != ["B", "G", "R"]:
+            raise ValueError(
+                "color_order must use each of R, G, B once, e.g. 'RGB' or 'BRG'"
+            )
+        self.color_order = order
         if num_strips < 1:
             raise ValueError("num_strips must be at least 1")
         if start_channel < 1 or (
@@ -44,6 +55,10 @@ class DMXStrips:
     def _prepare(self, color: ColorLike) -> RGB:
         return scale_color(parse_color(color), self.brightness)
 
+    def _channels(self, rgb: RGB) -> list:
+        """Reorder (R,G,B) into the decoder's channel order."""
+        return [rgb["RGB".index(c)] for c in self.color_order]
+
     def _check_strip(self, strip: int) -> None:
         if not 1 <= strip <= self.num_strips:
             raise ValueError(
@@ -60,7 +75,7 @@ class DMXStrips:
     def set_strip(self, strip: int, color: ColorLike) -> RGB:
         """Set one strip. Returns the (R,G,B) that was sent."""
         rgb = self._prepare(color)
-        self.device.send_channels(self.channel_of(strip), rgb)
+        self.device.send_channels(self.channel_of(strip), self._channels(rgb))
         return rgb
 
     def set_strips(self, strips: Iterable[int], color: ColorLike) -> RGB:
@@ -70,14 +85,14 @@ class DMXStrips:
             self._check_strip(s)
         rgb = self._prepare(color)
         for s in strips:
-            self.device.send_channels(self.channel_of(s), rgb)
+            self.device.send_channels(self.channel_of(s), self._channels(rgb))
         return rgb
 
     def set_all(self, color: ColorLike) -> RGB:
         """Set every strip to one color in a single USB transfer."""
         rgb = self._prepare(color)
         self.device.send_channels(
-            self.start_channel, list(rgb) * self.num_strips
+            self.start_channel, self._channels(rgb) * self.num_strips
         )
         return rgb
 
@@ -89,7 +104,7 @@ class DMXStrips:
             raise ValueError("more colors than strips")
         data = []
         for color in colors:
-            data.extend(self._prepare(color))
+            data.extend(self._channels(self._prepare(color)))
         self.device.send_channels(self.channel_of(first_strip), data)
 
     def blackout(self) -> None:
