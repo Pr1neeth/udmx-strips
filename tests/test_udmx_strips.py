@@ -83,3 +83,26 @@ def test_cli_errors():
     with pytest.raises(SystemExit) as e:
         main(["--dry-run", "notacolor"])
     assert e.value.code == 2
+
+
+def test_color_order_brg():
+    dev = DummyDevice()
+    s = DMXStrips(device=dev, color_order="brg")
+    s.set_strip(1, "red")      # red must land on channel 2
+    s.set_strip(1, "blue")     # blue on channel 1
+    s.set_strip(1, "green")    # green on channel 3
+    assert dev.writes == [(1, [0, 255, 0]), (1, [255, 0, 0]), (1, [0, 0, 255])]
+    s.set_all("red")
+    assert dev.writes[-1] == (1, [0, 255, 0] * 6)
+
+
+def test_bad_color_order():
+    with pytest.raises(ValueError):
+        DMXStrips(device=DummyDevice(), color_order="RRG")
+
+
+def test_cli_order(capsys):
+    assert main(["--dry-run", "--order", "BRG", "-s", "1", "red"]) == 0
+    assert "  0 255   0" in capsys.readouterr().out
+    with pytest.raises(SystemExit):
+        main(["--dry-run", "--order", "XYZ", "red"])
